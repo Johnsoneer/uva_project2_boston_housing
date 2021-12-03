@@ -1,0 +1,11 @@
+---
+title: 'Project 2: Group 1 - Boston Housing Racial Bias'
+author: "Will Johnson"
+date: "12/3/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
