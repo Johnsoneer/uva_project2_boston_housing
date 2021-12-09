@@ -86,6 +86,7 @@ sum(data$black_neighborhood)/nrow(data)
 Finally, let’s chart this variable to see how some of the other’s fall across it. Namely our price variable
 
 ```{r}
+data$black_neighborhood <- as.factor(data$black_neighborhood)
 # plot our new variable and the price distributions across it. 
 ggplot(data, aes(x= black_neighborhood, y=medv))+
   geom_boxplot(fill="light blue")
@@ -96,4 +97,36 @@ ggplot(data, aes(x= black_neighborhood, y=medv))+
 Definitely seems like there’s a relationship between these two and price. Looking at it, we should assume there should be predictive value including this variable in predicting price.
 
 
+# Part 1 -Regression : How much does the relative blackness of a neighborhood affect price? 
+
+First we'll start by looking at a handful of other visuals to see which variables seem to affect price beyond our "black_neighborhood" variable. We'll start with looking out our prices overall.
+
+```{r}
+ggplot(data, aes(x=medv))+
+  geom_histogram()+
+  labs(title = "Distribution of Median Housing Values per Area")
+```
+
+
+Looks mostly normally distributed with a handful of towns with a particularly high median value. We should look out for those to be potential outliers later. 
+
+Next, some scatterplots between quantitative variables. 
+
+
+
+```{r}
+ggplot(data, aes(x = log(crim), y = medv))+
+  geom_point(color = 'green3')+
+  labs(title="Crime Rate (log) by Median Home Value",
+       x = "Crime Rate - Log Scale")
+```
+
+
+Vaguely, it looks as though the more the crime rate increases, the values of houses start to decrease. We used a log scale for crime here because otherwise the majority of towns had too low a crime rate to see this trend. 
+
+Next,
+
+```{r}
+head(data)
+```
 
