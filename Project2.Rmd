@@ -152,44 +152,44 @@ ggplot(data, aes(x = indus, y = cmedv))+
 
 p1 <- ggplot(data, aes(x = nox, y = cmedv))+
       geom_point(color = 'purple1')+
-      labs(title="NO2 concentration by Median Home Value",
+      labs(title="NO2 concentration by Med. Value",
            x = "Nitric Oxides Conentration (parts per 10m)")
 
 p2 <- ggplot(data, aes(x = dis, y = cmedv))+
       geom_point(color = 'purple2')+
-      labs(title="Distance to Work by Median Home Value",
+      labs(title="Distance to Work by Med. Value",
            x = "Weighted Distances to Employment Centres")
 
 p3 <- ggplot(data, aes(x = rad, y = cmedv))+
       geom_point(color = 'purple3')+
-      labs(title="Highway Access by Median Home Value",
+      labs(title="Highway Access by Med. Value",
            x = "Index of Accessibility to Highways")
 
 p4 <- ggplot(data, aes(x = tax, y = cmedv, color=rad))+
       geom_point(alpha=.5)+
-      labs(title="Property Tax Rate by Median Home Value",
+      labs(title="Property Tax Rate by Med. Value",
            x = "Property Tax rate per $10,000")
 
 # Proportions
 p5 <- ggplot(data, aes(x = ptratio, y = cmedv))+
       geom_point(color = 'orange2')+
-      labs(title="Student-Teacher Ratio by Median Home Value",
+      labs(title="Student-Teacher Ratio by Med. Value",
            x = "Studnets per Teacher")
 
 p6 <- ggplot(data, aes(x = age, y = cmedv))+
       geom_point(color = 'orange3')+
-      labs(title="Age by Median Home Value",
+      labs(title="Age by Med. Value",
            x = "% of homes build prior to 1940")
 
 p7 <- ggplot(data, aes(x = lstat, y = cmedv))+
   geom_point(color = 'orange4')+
-  labs(title="% of Lower Class by Median Home Value",
+  labs(title="% of Lower Class by Med. Value",
        x = "% of 'Lower Status' Citizens")
 
 # Boolean Variables
 p8 <- ggplot(data, aes(x = chas, y = cmedv))+
       geom_boxplot(fill = "lightblue2")+
-      labs(title="House By the River (y/n) by Median Home Value",
+      labs(title="House By the River (y/n) by Med. Value",
            x = "Homes Line Charles River")
 
 grid.arrange(p1,p2,p3,p4,
