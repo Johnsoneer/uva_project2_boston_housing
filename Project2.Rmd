@@ -11,6 +11,7 @@ library(ggplot2)
 library(dplyr)
 # install.packages("gridExtra")
 library(gridExtra)
+#?BostonHousing2
 ```
 
 # Exploring our Dataset
@@ -199,7 +200,7 @@ grid.arrange(p1,p2,p3,p4,
 
 grid.arrange(p5,p6,p7,p8,
   ncol = 2,
-  clip = TRUE
+  clip = FALSE
 )
 ```
 
@@ -207,12 +208,75 @@ Something important to note about the above relationships. The Tax rate chart se
 
 Other interesting relationships is that being next to the river seems to have a positive impact on price, whereas the typical age of the homes seems to have a negative impact (but only after 75 years). Finally, there's this indexed metric called `lstat` which measures the "Percentage of Lower Status of the Population". Looking further into the 1970 Census paper, it looks like this metric measures the following. 
 
+"""
 > Proportion of population that is lower status = 1/2 (proportion of adults without, some high school education and proportion of male workers classified as laborers). The logarithmic specification implies that socioeconomic status distinctions mean more in the upper brackets of society than in the lower classes. Source: 1970 U. S. Census
 [Harrison & Rubinfeld, 82]
+"""
+
+So it looks as though this variable is a combination of several class-related factors that have been aggregated to a given township. It's a shame that we don't have those variables split out so we can use them in our model as individual predictors, but there is clearly a negative relationship between the % of "lower class" people in the town and the median value. This predictor is very much a product of it's time. 
+
+# Part 2: Regression
+
+To start with, we'll run a very basic linear model with all the other predictors in it to see our benchmark of performance with no changes or alterations. 
+
+
+### Benchmark Model Summary 
+```{r}
+benchmark <- lm(cmedv ~ crim + zn + indus + chas + nox + rm + age + dis + rad + tax + ptratio + lstat + black_neighborhood, data = data)
+
+summary(benchmark)
+```
+
+With the above benchmark set, it appears we are off to a good start. Our adjusted R-squared suggests that nearly 74% of the variance in our data is explained by our model. Our F-statistic is large and the relative p-value suggests the following result to a hypothesis test:
+
+$ H_0:$ *There is no difference between our model and the intercept alone.*
+$ H_A:$ *There is difference between our model and the intercept alone.*
+
+Since our p-value is below .05, we can reject the null and conclude that some combination of the above predictors improves the model beyond the intercept alone. 
+
+To help us validate that this model is working, let's take a look at our residual values. 
+
+```{r}
+# plot our residual plot
+ggplot(benchmark, aes(x = .fitted, y = .resid)) +
+  geom_point()+
+  labs(title='Residual Plot for Benchmark Model')
+```
+
+There are several assumptions that we should be checking for here. 
+1. Is the variance of our residuals consistent?
+2. Is the mean of our Residuals 0? 
+3. Are the residuals normally distributed? 
+
+There are other assumptions we can verify as well, but we'll start with these since we can identify issues with these using just the residual plot. From observing the residual plot, we can see that none of the above assumptions are met completely. The variance in our residuals seems to increase as our fitted values increase. Likewise, the variance is not centered around 0 and a slight curve to a line is appearing, violating assumption 2. Finally, the presence of those oddly capped points at the top suggest that if we had any towns who's `cmedv` is above $50,000, the curve might actually have a "U" shape to it. 
+
+# NEXT STEPS *************************************************
+
+- log-transform variables to help meet assumptions
+- Identify high-leverage points or outliers and see what we should do with them. 
+- Backward Selection (excluding black_neighborhood) to try to improve model performance. 
+- Final conlusions: How much does being a "Black Neighborhood" impact the median home price, other predictors held constant? 
+
+
+
+
+
+
+
+# Part 4: Logistic Regression
+
+# Part 5: Check the prompt for more stuff. 
+
+
+
+
+
+
+
 
 # Bibliography
-<i>Michael Carlisle . “racist data destruction?” Medium, 13 June. 2019, https://medium.com/@docintangible/racist-data-destruction-113e3eff54a8. Accessed 15 November. 2021.
+Michael Carlisle . “racist data destruction?” Medium, 13 June. 2019, https://medium.com/@docintangible/racist-data-destruction-113e3eff54a8. Accessed 15 November. 2021.
 
 David Harrison, Daniel L Rubinfeld, “Hedonic housing prices and the demand for clean air”,
-Journal of Environmental Economics and Management,Volume 5, Issue 1,1978,Pages 81-102, ISSN 0095-0696.</i>
+Journal of Environmental Economics and Management,Volume 5, Issue 1,1978,Pages 81-102, ISSN 0095-0696.
 
