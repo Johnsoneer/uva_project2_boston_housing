@@ -215,6 +215,18 @@ Other interesting relationships is that being next to the river seems to have a 
 
 So it looks as though this variable is a combination of several class-related factors that have been aggregated to a given township. It's a shame that we don't have those variables split out so we can use them in our model as individual predictors, but there is clearly a negative relationship between the % of "lower class" people in the town and the median value. This predictor is very much a product of it's time. 
 
+### Judgement Call
+
+There are several reasons as to why there are clusters of neighborhoods at $50k. It's possible that the researchers had blank values and filled those in with the maximum value they had data for. It's also possible that the original researchers decided to filter out any neighborhoods that were above 50k, which could make sense for their research. 
+
+For the purposes of our research, we will be *ignoring any of these neighborhoods valued at cmedv = $50k*. Further reserach might yield insight into why those neighborhoods look this way and a published paper should try to do so, but for this assignment we'll keep our dataset within those bounds. We lose 16 neighborhoods doing so, or around 3% of our data. 
+
+```{r}
+data <- data %>% 
+  filter(cmedv<50)
+```
+
+
 # Part 2: Regression
 
 To start with, we'll run a very basic linear model with all the other predictors in it to see our benchmark of performance with no changes or alterations. 
@@ -246,16 +258,16 @@ ggplot(benchmark, aes(x = .fitted, y = .resid)) +
 There are several assumptions that we should be checking for here. 
 1. Is the variance of our residuals consistent?
 2. Is the mean of our Residuals 0? 
-3. Are the residuals normally distributed? 
+3. Are the observations independent of each other?
 
-There are other assumptions we can verify as well, but we'll start with these since we can identify issues with these using just the residual plot. From observing the residual plot, we can see that none of the above assumptions are met completely. The variance in our residuals seems to increase as our fitted values increase. Likewise, the variance is not centered around 0 and a slight curve to a line is appearing, violating assumption 2. Finally, the presence of those oddly capped points at the top suggest that if we had any towns who's `cmedv` is above $50,000, the curve might actually have a "U" shape to it. 
+There are other assumptions we can verify as well, but we'll start with these since we can identify issues with these using just the residual plot. From observing the residual plot, we can see that none of the above assumptions are met completely. The variance in our residuals seems to fluctuate as our fitted values increase. Likewise, the variance is not centered around 0 and a slight curve to a line is appearing, violating assumptions 2 and 3. 
 
 # NEXT STEPS *************************************************
 
 - log-transform variables to help meet assumptions
 - Identify high-leverage points or outliers and see what we should do with them. 
 - Backward Selection (excluding black_neighborhood) to try to improve model performance. 
-- Final conlusions: How much does being a "Black Neighborhood" impact the median home price, other predictors held constant? 
+- Final conclusions: How much does being a "Black Neighborhood" impact the median home price, other predictors held constant? 
 
 
 
