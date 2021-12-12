@@ -10,7 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(dplyr)
 # install.packages("gridExtra")
+# install.packages("ROCR")
 library(gridExtra)
+library(ROCR)
+library(MASS)
 #?BostonHousing2
 ```
 
@@ -234,9 +237,8 @@ To start with, we'll run a very basic linear model with all the other predictors
 
 ### Benchmark Model Summary 
 ```{r}
-benchmark <- lm(cmedv ~ crim + zn + indus + chas + nox + rm + age + dis + rad + tax + ptratio + lstat + black_neighborhood, data = data)
+benchmark <- lm(cmedv ~ crim + zn + indus + chas + nox + rm + age + log(dis) + rad + tax + ptratio + lstat + black_neighborhood, data = data)
 
-summary(benchmark)
 ```
 
 With the above benchmark set, it appears we are off to a good start. Our adjusted R-squared suggests that nearly 74% of the variance in our data is explained by our model. Our F-statistic is large and the relative p-value suggests the following result to a hypothesis test:
@@ -258,24 +260,155 @@ ggplot(benchmark, aes(x = .fitted, y = .resid)) +
 There are several assumptions that we should be checking for here. 
 1. Is the variance of our residuals consistent?
 2. Is the mean of our Residuals 0? 
-3. Are the observations independent of each other?
 
-There are other assumptions we can verify as well, but we'll start with these since we can identify issues with these using just the residual plot. From observing the residual plot, we can see that none of the above assumptions are met completely. The variance in our residuals seems to fluctuate as our fitted values increase. Likewise, the variance is not centered around 0 and a slight curve to a line is appearing, violating assumptions 2 and 3. 
+There are other assumptions we can verify as well, but we'll start with these since we can identify issues with these using just the residual plot. From observing the residual plot, we can see that none of the above assumptions are met completely. The variance in our residuals seems to fluctuate as our fitted values increase. Likewise, the variance is not centered around 0 and a slight curve to a line is appearing, violating assumptions 2. 
+
+### Transformations
+
+Ideally, we won't need to transform our response variable at all because we're hoping to interpret coefficients directly. Normally we would consider transforming the response variable first, since Transforming the predictor does not affect the variance of the error terms and any transformations we do to the predictors might be skewed if we need to eventually transform the response. But the above suggests a curve rather than wild variance, so we'll start with predictors. 
+
+Since we did a log transformation on the crime rates when comparing them to cmedv, we'll start with seeing how well that improves the residuals for a simple model using just crime as a predictor. 
+
+```{r}
+# A simple linear model with just the crime vs cmedv. 
+SLR_crim <- lm(cmedv ~ crim, data = data)
+SLR_crim_log <- lm(cmedv ~ log(crim), data = data)
+
+p9 <- ggplot(SLR_crim, aes(x = .fitted, y = .resid)) +
+  geom_point(color='darkred')+
+  labs(title='Residual Plot for Value ~ Crime')
+
+p10 <- ggplot(SLR_crim_log, aes(x = .fitted, y = .resid)) +
+  geom_point(color='blue3')+
+  labs(title='Residual Plot for Value ~ Log(Crime)')
+# Improves things phenomenally. The leftover increase in variance is negligible.
+
+grid.arrange(p9,p10,
+  ncol = 2,
+  clip = FALSE
+)
+```
+
+Much better. Let's also look at the `Distance to Work`, `House Age`, and `% Lower Class` features next, as they also seem to follow none-linear patterns. It's not inherently clear which one will work with which, so we'll use BoxCox to help us figure out which of these variables should be transformed in which ways. 
+
+Below, we'll show an example of one of several BOXCOX plots we used to help make our decisions. The other plots were very similar to this one below, that shows the boxcox plot for `cmedv` predicted by the `lstat` predictor, which measure the % of the population in "lower class". 
+
+### BOXCOX for cmedv ~ Class
+```{r}
+boxcox(lm(cmedv ~ lstat, data=data))
+```
+
+Since the lambda variable is optimized *right* next to 0, we'll try a log transformation for this variable. The others that were closer to .5, we tried a square-root transformation instead. The BOXCOX plot is really a guide to help us figure out where to look, but the end decision we made by looking at how our residuals looked once we've made these transformations.
+
+```{r}
+transformed <- lm(cmedv ~ log(crim) + zn + indus + chas + nox + rm + sqrt(age) + sqrt(dis) + rad + tax + ptratio + log(lstat) + black_neighborhood, data = data)
+
+
+# plot our residual plot
+ggplot(transformed, aes(x = .fitted, y = .resid)) +
+  geom_point()+
+  labs(title='Residual Plot for Transformed Model')
+```
+
+
+The above fitted residuals look much better. There's very little curvature in the residuals nor does there appear to be any stark increase or decrease in the variance of the residuals. One thing to note is that if our goals were to maximize the accuracy of predictions, we might care less about the interpretability of our predictor and response variables and therefore we might transform our response variable as well to see how it affects performance. Since we do care about interpretability, this is where we'll stop our transformations and move on.
+
+### Two more assumptions to check for
+
+First, let's check the QQ norm plot to see how well our residuals follow the assumed normal distribution. 
+
+```{r}
+# qqnorm
+qqnorm(transformed$residuals)
+qqline(transformed$residuals, col="red")
+```
+
+Definitely a little room for improvement here but since this particular assumption is not the most important for us to bend to and the samples fit close enough to our expectations, we'll move on to checking whether our residuals are independently related to each other by checking the ACF plot below. 
+
+### ACF Plot of our Model Post Transformations
+
+```{r}
+# ACF Plot
+acf(transformed$resid)
+```
+
+Interestingly, there does appear to be a slight relationship in one residual from the next. A pattern appears to emerge where one observation seems oddly close to the next one in line. What this might tell us is that there is a relationship between the observations in one township and the neighboring areas. This makes sense logically, as one expensive town is more likely to be neighbored by another expensive town rather than completely random placements of high and low value towns sporadically throughout Boston. 
+
+There is little we can do about this relationship and the data we have thus far, so while our assumption is not met to 100% our satisfaction, we feel comfortable moving forward with the data we have so far. We will be sure to note this discrepancy in our final conclusions. 
+
 
 # NEXT STEPS *************************************************
 
-- log-transform variables to help meet assumptions
 - Identify high-leverage points or outliers and see what we should do with them. 
-- Backward Selection (excluding black_neighborhood) to try to improve model performance. 
+- Feature Selection (excluding black_neighborhood) to try to improve model performance. Do we want to keep all of them regardless?
 - Final conclusions: How much does being a "Black Neighborhood" impact the median home price, other predictors held constant? 
 
 
 
 
 
-
-
 # Part 4: Logistic Regression
+
+We wanted to see if a logistic model could be useful in predicting whether a neighborhood was a black neighborhood.
+
+Similar to the multiple regression model, we will run a basics logistic model with all the predictors included. This will give us a sense of our benchmark, as well as which predictors could be useful. We will also split the data set into two: 75% for training and 25% for testing. We will use the training data frame to create a model and the testing data frame to measure it's performance.
+
+### Benchmark Model Summary 
+```{r}
+set.seed(100) ##for reproducibility to get the same split
+sample<-sample.int(nrow(data), floor(.75*nrow(data)), replace = F)
+train<-data[sample, ] ##training data frame
+test<-data[-sample, ] ##test data frame
+#logistic regression with all variables
+result.full<-glm(black_neighborhood~cmedv + zn + indus + chas + nox + rm + age + dis + rad + tax + ptratio + lstat , family = "binomial", data=train)
+summary(result.full)
+```
+
+It appears that all of the variables except cmedv (median home value) and rm (average number of rooms) are not significant. Since we've already confirmed a relationship between average home value and black neighborhood in Part 1, it's not surprising to see a similar relationship in our logistic model.  Let's chart the variables for average number of rooms and black neighborhood to see if there's a relationship. 
+
+
+
+```{r}
+ggplot(data, aes(x= black_neighborhood, y=rm))+
+  geom_boxplot(fill="light blue")+
+  labs(title="Box Plot of Average Number of Rooms By black_neighorhood", y= 'Average Number of Rooms')
+```
+
+It seems like the average number of rooms is similar between black neighborhoods and non-black neighborhoods at around 6.25. However, the variance for the average seems to be much higher for non-black neighborhoods.There also seems to be a large cluster of outliers above 7.5 rooms for non-black neighborhoods.
+
+Let's now run a logistic regression on the test data using only the variables for average home value and average number of rooms. 
+
+```{r}
+#logistic regression with only cmedv and rm
+result.reduced<-glm(black_neighborhood~cmedv+ rm , family = "binomial", data= train)
+summary(result.reduced)
+```
+
+This looks much better since the p-values for both coefficients are close to zero. It's interesting to see that the coefficient for rm is positive. This indicates that holding the average home value constant, increasing the average number of rooms increases the probability that the neighborhood is black. 
+
+The coefficient for the average home value is negative. This indicates that holding the average number of rooms constant, increasing the average home value decreases the probability that the neighborhood is black. 
+
+Let's now see how our logistic model with two variables perform against the testing data frame. We'll plot the ROC curve and then calculate the AUC. 
+
+```{r}
+##predictions for black_neighborhood variable for test data based on training data
+preds<-predict(result.reduced,newdata=test, type="response")
+rates<-prediction(preds, test$black_neighborhood)
+##store the true positive and false positive rates
+roc_result<-performance(rates,measure="tpr", x.measure="fpr")
+##plot ROC curve and overlay the diagonal line for random guessing
+plot(roc_result, main="ROC Curve")
+lines(x = c(0,1), y = c(0,1), col="red")
+#3.
+##compute the AUC
+auc<-performance(rates, measure = "auc")
+auc@y.values
+```
+
+The ROC curve is well above the diagonal line except for at the very end. It looks like the logistic regression performs much better than random guessing. 
+
+This is also confirmed by a very strong AUC of 0.8596. We can conclude that the model does better than random guessing.
+
 
 # Part 5: Check the prompt for more stuff. 
 
