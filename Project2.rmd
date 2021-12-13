@@ -1,6 +1,6 @@
 ---
 title: 'Project 2: Group 1 - Boston Housing Racial Bias'
-author: "Will Johnson"
+author: "Lauren Bassett, Will Johnson, Anoop Nath, Aishwarya Pradhan"
 date: "12/3/2021"
 output: pdf_document
 ---
@@ -410,6 +410,64 @@ The ROC curve is well above the diagonal line except for at the very end. It loo
 This is also confirmed by a very strong AUC of 0.8596. We can conclude that the model does better than random guessing.
 
 
+```{r}
+regnull<-lm(cmedv~log(crim), data= data)
+regfull<-lm(cmedv ~ log(crim) + zn + indus + chas + nox + rm + sqrt(age) + sqrt(dis) + rad + tax + ptratio + log(lstat) + black_neighborhood, data= data)
+step(regnull, scope=list(lower=regnull, upper=regfull), direction = "forward")
+
+```
+
+```{r}
+step(regfull, scope=list(lower=regnull, upper=regfull), direction = "backward")
+
+```
+
+Through our analysis of doing forward and backward regression on the transformed variables, we find that the black_neighborhood1 variable was retained and relevant in both models. Therefore we can posit that the indicator of the predominantly black neighborhood has an influcene on housing prices in Boston.  
+
+
+```{r}
+
+result <- lm(cmedv ~ log(crim) + nox + rm + sqrt(dis) + rad + 
+    tax + ptratio + log(lstat) + black_neighborhood, data = data)
+
+res <-result$residuals
+student.res<-rstandard(result)
+ext.student.res<-rstudent(result)
+
+# Outlier detection using Bonferroni
+
+n<- dim(data)[1]
+p<- 19
+crit<-qt(1-0.05/(2*n), n-p-1)
+
+ext.student.res[abs(ext.student.res)>crit]
+
+```
+
+By using Bonferroni method for outlier detection, we find that observation 368 in our dataset is an outlier.
+
+```{r}
+lev <- lm.influence(result)$hat
+
+lev[lev>2*p/n]
+```
+
+We identify the high leverage observations, which are the data points that are the most influencial. We ran leverages analysis, Cook's distance, and DFFITs to find the most influcencial data point. The outlier observation 368 was repeatedly included as an influcencial observation, however, Cook's distance resulted in no values. Though observation 368 is of concern, the analysis indicates that there is only one true outlier. 
+
+
+```{r}
+COOKS<-cooks.distance(result)
+COOKS[COOKS>qf(0.5,p,n-p)]
+```
+```{r}
+DFFITS<-dffits(result)
+DFFITS[abs(DFFITS)>2*sqrt(p/n)]
+```
+
+```{r}
+data[c(368), ]
+```
+
 # Part 5: Check the prompt for more stuff. 
 
 
@@ -424,4 +482,3 @@ Michael Carlisle . “racist data destruction?” Medium, 13 June. 2019, https:/
 
 David Harrison, Daniel L Rubinfeld, “Hedonic housing prices and the demand for clean air”,
 Journal of Environmental Economics and Management,Volume 5, Issue 1,1978,Pages 81-102, ISSN 0095-0696.
-
