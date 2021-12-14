@@ -34,7 +34,6 @@ head(data)
 The variable "b" is described in the census documents as...
 
 > 1000(B - 0.63)^2 where B is the proportion of blacks by town
-
 Initially, our goal was to categorize the data using a “majority black” binary variable. Based on the description, we thought the values would be between 0 and 1, or possibly 0 and 100. Instead, the variable is distributed on a quadratic curve. 
 
 ```{r}
@@ -61,7 +60,6 @@ colnames(parab) = c('x','y')
 ggplot(data = parab, aes(x=y, y=x ))+
   geom_line()+
   labs(x = "Potential proportion of black people", y='b variable')
-
 ```
 
 It is impossible to retrieve the original B variable because there are two possible values of B for each transformed variable. Neighborhoods with a black population higher than 26% become harder to determine. 
@@ -96,7 +94,6 @@ data$black_neighborhood <- as.factor(data$black_neighborhood)
 # plot our new variable and the price distributions across it. 
 ggplot(data, aes(x= black_neighborhood, y=medv))+
   geom_boxplot(fill="light blue")
-
 ```
 
 
@@ -156,54 +153,44 @@ ggplot(data, aes(x = indus, y = cmedv))+
 
 
 ```{r}
-
 p1 <- ggplot(data, aes(x = nox, y = cmedv))+
       geom_point(color = 'purple1')+
       labs(title="NO2 concentration by Med. Value",
            x = "Nitric Oxides Conentration (parts per 10m)")
-
 p2 <- ggplot(data, aes(x = dis, y = cmedv))+
       geom_point(color = 'purple2')+
       labs(title="Distance to Work by Med. Value",
            x = "Weighted Distances to Employment Centres")
-
 p3 <- ggplot(data, aes(x = rad, y = cmedv))+
       geom_point(color = 'purple3')+
       labs(title="Highway Access by Med. Value",
            x = "Index of Accessibility to Highways")
-
 p4 <- ggplot(data, aes(x = tax, y = cmedv, color=rad))+
       geom_point(alpha=.5)+
       labs(title="Property Tax Rate by Med. Value",
            x = "Property Tax rate per $10,000")
-
 # Proportions
 p5 <- ggplot(data, aes(x = ptratio, y = cmedv))+
       geom_point(color = 'orange2')+
       labs(title="Student-Teacher Ratio by Med. Value",
            x = "Studnets per Teacher")
-
 p6 <- ggplot(data, aes(x = age, y = cmedv))+
       geom_point(color = 'orange3')+
       labs(title="Age by Med. Value",
            x = "% of homes build prior to 1940")
-
 p7 <- ggplot(data, aes(x = lstat, y = cmedv))+
   geom_point(color = 'orange4')+
   labs(title="% of Lower Class by Med. Value",
        x = "% of 'Lower Status' Citizens")
-
 # Boolean Variables
 p8 <- ggplot(data, aes(x = chas, y = cmedv))+
       geom_boxplot(fill = "lightblue2")+
       labs(title="House By the River (y/n) by Med. Value",
            x = "Homes Line Charles River")
-
 grid.arrange(p1,p2,p3,p4,
   ncol = 2,
   clip = TRUE
 )
-
 grid.arrange(p5,p6,p7,p8,
   ncol = 2,
   clip = FALSE
@@ -219,7 +206,6 @@ Other relationships of note are the positive relationship between proximity to t
 [Harrison & Rubinfeld, 82]
 """
 It appears that the variable is a combination of several class-related factors that have been aggregated to a given township. Unfortunatley, these variables are not able to be used as individual predictors, but there is a strong negative relationship between the % of "lower class" people in the town and the median value.
-
 ### Judgement Call
 
 There are several reasons as to why there are clusters of neighborhoods at $50k. It's possible that the researchers had blank values and filled those in with the maximum value they had data for. It's also possible that the original researchers decided to filter out any neighborhoods that were above 50k, which could make sense for their research. 
@@ -240,13 +226,12 @@ To start with, we'll run a very basic linear model with all the other predictors
 ### Benchmark Model Summary 
 ```{r}
 benchmark <- lm(cmedv ~ crim + zn + indus + chas + nox + rm + age + log(dis) + rad + tax + ptratio + lstat + black_neighborhood, data = data)
-
 ```
 
 With the above benchmark set, it appears we are off to a good start. Our adjusted R-squared suggests that nearly 74% of the variance in our data is explained by our model. Our F-statistic is large and the relative p-value suggests the following result to a hypothesis test:
 
-$ H_0:$ *There is no difference between our model and the intercept alone.*
-$ H_A:$ *There is difference between our model and the intercept alone.*
+$H_0:$ *There is no difference between our model and the intercept alone.*
+$H_A:$ *There is difference between our model and the intercept alone.*
 
 Since our p-value is below .05, we can reject the null and conclude that some combination of the above predictors improves the model beyond the intercept alone. 
 
@@ -276,16 +261,13 @@ Since we did a log transformation on the crime rates when comparing them to cmed
 # A simple linear model with just the crime vs cmedv. 
 SLR_crim <- lm(cmedv ~ crim, data = data)
 SLR_crim_log <- lm(cmedv ~ log(crim), data = data)
-
 p9 <- ggplot(SLR_crim, aes(x = .fitted, y = .resid)) +
   geom_point(color='darkred')+
   labs(title='Residual Plot for Value ~ Crime')
-
 p10 <- ggplot(SLR_crim_log, aes(x = .fitted, y = .resid)) +
   geom_point(color='blue3')+
   labs(title='Residual Plot for Value ~ Log(Crime)')
 # Improves things phenomenally. The leftover increase in variance is negligible.
-
 grid.arrange(p9,p10,
   ncol = 2,
   clip = FALSE
@@ -304,8 +286,6 @@ Since the lambda variable is optimized *right* next to 0, we'll try a log transf
 
 ```{r}
 transformed <- lm(cmedv ~ log(crim) + zn + indus + chas + nox + rm + sqrt(age) + sqrt(dis) + rad + tax + ptratio + log(lstat) + black_neighborhood, data = data)
-
-
 # plot our residual plot
 ggplot(transformed, aes(x = .fitted, y = .resid)) +
   geom_point()+
@@ -347,7 +327,7 @@ We wanted to see if a logistic model could be useful in predicting whether a nei
 Similar to the multiple regression model, we will run a basics logistic model with all the predictors included. This will give us a sense of our benchmark, as well as which predictors could be useful. We will also split the data set into two: 75% for training and 25% for testing. We will use the training data frame to create a model and the testing data frame to measure it's performance.
 
 ### Benchmark Model Summary 
-```{r}
+```{r,message= FALSE}
 set.seed(100) ##for reproducibility to get the same split
 sample<-sample.int(nrow(data), floor(.75*nrow(data)), replace = F)
 train<-data[sample, ] ##training data frame
@@ -370,20 +350,36 @@ ggplot(data, aes(x= black_neighborhood, y=rm))+
 It seems like the average number of rooms is similar between black neighborhoods and non-black neighborhoods at around 6.25. However, the variance for the average seems to be much higher for non-black neighborhoods.There also seems to be a large cluster of outliers above 7.5 rooms for non-black neighborhoods.
 
 Now, we run a logistic regression on the test data using only the variables for average home value and average number of rooms. 
-
 ```{r}
 #logistic regression with only cmedv and rm
 result.reduced<-glm(black_neighborhood~cmedv+ rm , family = "binomial", data= train)
 summary(result.reduced)
 ```
 
-This looks much better since the p-values for both coefficients are close to zero. It's interesting to see that the coefficient for rm is positive. This indicates that holding the average home value constant, increasing the average number of rooms increases the probability that the neighborhood is black. 
+The reduced model looks much better since the p-values for both coefficients are close to zero. It's interesting to see that the coefficient for rm is positive. This indicates that holding the average home value constant, increasing the average number of rooms increases the probability that the neighborhood is black. 
 
 The coefficient for the average home value is negative. This indicates that holding the average number of rooms constant, increasing the average home value decreases the probability that the neighborhood is black. 
 
-Let's now see how our logistic model with two variables perform against the testing data frame. We'll plot the ROC curve and then calculate the AUC. 
+We will now perform the following hypothesis test to see whether we should go with the full model or reduced model:  
+
+$H_o:$ *Betas for all coefficients except for cmedv and rm are equal to zero *
+$H_a:$ *At least one of the coefficients in H0 is not zero*
 
 ```{r}
+#test statistic
+deltaG2_partial<-result.reduced$deviance-result.full$deviance
+deltaG2_partial
+
+#p-value
+1-pchisq(deltaG2_partial,10)
+```
+
+The p-value of 0.111 is higher than our alpha of 0.05. Therefore, we fail to reject the null and decide to go with the reduced model.
+
+Let's now see how our reduced logistic model with two variables perform against the testing data frame. We'll also perform the following hypothesis test to see whether we should go with the full model or reduced model.  
+
+
+```{r,message= FALSE}
 ##predictions for black_neighborhood variable for test data based on training data
 preds<-predict(result.reduced,newdata=test, type="response")
 rates<-prediction(preds, test$black_neighborhood)
@@ -397,51 +393,44 @@ lines(x = c(0,1), y = c(0,1), col="red")
 auc<-performance(rates, measure = "auc")
 auc@y.values
 ```
+We'll plot the ROC curve and then calculate the AUC.
+
 
 The ROC curve is well above the diagonal line except for at the very end. It looks like the logistic regression performs much better than random guessing. 
 
-This is also confirmed by a very strong AUC of 0.8596. We can conclude that the model does better than random guessing.
+This is also confirmed by a very strong AUC of 0.8596. Since the AUC is well above 0.5, we can conclude that the model does better than random guessing and does have predictive value.
 
 
 ```{r}
 regnull<-lm(cmedv~log(crim), data= data)
 regfull<-lm(cmedv ~ log(crim) + zn + indus + chas + nox + rm + sqrt(age) + sqrt(dis) + rad + tax + ptratio + log(lstat) + black_neighborhood, data= data)
 step(regnull, scope=list(lower=regnull, upper=regfull), direction = "forward")
-
 ```
 
 ```{r}
 step(regfull, scope=list(lower=regnull, upper=regfull), direction = "backward")
-
 ```
 
 Through our analysis of doing forward and backward regression on the transformed variables, we find that the black_neighborhood1 variable was retained and relevant in both models. Therefore we can posit that the indicator of the predominantly black neighborhood has an influence on housing prices in Boston.  
 
 
 ```{r}
-
 result <- lm(cmedv ~ log(crim) + nox + rm + sqrt(dis) + rad + 
     tax + ptratio + log(lstat) + black_neighborhood, data = data)
-
 res <-result$residuals
 student.res<-rstandard(result)
 ext.student.res<-rstudent(result)
-
 # Outlier detection using Bonferroni
-
 n<- dim(data)[1]
 p<- 19
 crit<-qt(1-0.05/(2*n), n-p-1)
-
 ext.student.res[abs(ext.student.res)>crit]
-
 ```
 
 By using Bonferroni method for outlier detection, we find that observation 368 in our dataset is an outlier.
 
 ```{r}
 lev <- lm.influence(result)$hat
-
 lev[lev>2*p/n]
 ```
 
