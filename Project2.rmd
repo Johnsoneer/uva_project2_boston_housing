@@ -210,16 +210,15 @@ grid.arrange(p5,p6,p7,p8,
 )
 ```
 
-Something important to note about the above relationships. The Tax rate chart seems to cleave our dataset into two. The only other predictor that does this is the Index of Radial Highway access. Layering both together into the same chart via color, you can see that the group in the highest tax bracket is entirely made up of those areas with close access to the highways. Accessibility to highways seems to create a rift between groups in our dataset.
+The views reveal key insights about our data set. The Tax rate chart divides the dataset into two. The only other predictor that does this is the Index of Radial Highway access. Layering both together into the same chart via color, you can see that the group in the highest tax bracket is entirely made up of those areas with close access to the highways. Accessibility to highways seems to create a divide between groups in our dataset.
 
-Other interesting relationships is that being next to the river seems to have a positive impact on price, whereas the typical age of the homes seems to have a negative impact (but only after 75 years). Finally, there's this indexed metric called `lstat` which measures the "Percentage of Lower Status of the Population". Looking further into the 1970 Census paper, it looks like this metric measures the following. 
+Other relationships of note are the positive relationship between proximity to the river on price, and the negative relationship between age of the home on price. Finally, there's this indexed metric called `lstat` which measures the "Percentage of Lower Status of the Population". Looking further into the 1970 Census paper, it looks like this metric measures the following:
 
 """
 > Proportion of population that is lower status = 1/2 (proportion of adults without, some high school education and proportion of male workers classified as laborers). The logarithmic specification implies that socioeconomic status distinctions mean more in the upper brackets of society than in the lower classes. Source: 1970 U. S. Census
 [Harrison & Rubinfeld, 82]
 """
-
-So it looks as though this variable is a combination of several class-related factors that have been aggregated to a given township. It's a shame that we don't have those variables split out so we can use them in our model as individual predictors, but there is clearly a negative relationship between the % of "lower class" people in the town and the median value. This predictor is very much a product of it's time. 
+It appears that the variable is a combination of several class-related factors that have been aggregated to a given township. Unfortunatley, these variables are not able to be used as individual predictors, but there is a strong negative relationship between the % of "lower class" people in the town and the median value.
 
 ### Judgement Call
 
@@ -251,7 +250,7 @@ $ H_A:$ *There is difference between our model and the intercept alone.*
 
 Since our p-value is below .05, we can reject the null and conclude that some combination of the above predictors improves the model beyond the intercept alone. 
 
-To help us validate that this model is working, let's take a look at our residual values. 
+To help us validate that this model is working, we look at the residual values. 
 
 ```{r}
 # plot our residual plot
@@ -260,15 +259,16 @@ ggplot(benchmark, aes(x = .fitted, y = .resid)) +
   labs(title='Residual Plot for Benchmark Model')
 ```
 
-There are several assumptions that we should be checking for here. 
+Next, we need to validate that our model complies with the following assumptions: 
 1. Is the variance of our residuals consistent?
 2. Is the mean of our Residuals 0? 
+
 
 There are other assumptions we can verify as well, but we'll start with these since we can identify issues with these using just the residual plot. From observing the residual plot, we can see that none of the above assumptions are met completely. The variance in our residuals seems to fluctuate as our fitted values increase. Likewise, the variance is not centered around 0 and a slight curve to a line is appearing, violating assumptions 2. 
 
 ### Transformations
 
-Ideally, we won't need to transform our response variable at all because we're hoping to interpret coefficients directly. Normally we would consider transforming the response variable first, since Transforming the predictor does not affect the variance of the error terms and any transformations we do to the predictors might be skewed if we need to eventually transform the response. But the above suggests a curve rather than wild variance, so we'll start with predictors. 
+Ideally, we won't need to transform our response variable at all because we're hoping to interpret coefficients directly. Normally we would consider transforming the response variable first, since transforming the predictor does not affect the variance of the error terms and any transformations we do to the predictors might be skewed if we need to eventually transform the response. But the above suggests a curve rather than wild variance, so we'll start with predictors. 
 
 Since we did a log transformation on the crime rates when comparing them to cmedv, we'll start with seeing how well that improves the residuals for a simple model using just crime as a predictor. 
 
@@ -291,8 +291,7 @@ grid.arrange(p9,p10,
   clip = FALSE
 )
 ```
-
-Much better. Let's also look at the `Distance to Work`, `House Age`, and `% Lower Class` features next, as they also seem to follow none-linear patterns. It's not inherently clear which one will work with which, so we'll use BoxCox to help us figure out which of these variables should be transformed in which ways. 
+This is a large improvement. Let's also look at the `Distance to Work`, `House Age`, and `% Lower Class` features next, as they also seem to follow none-linear patterns. It's not inherently clear which one will work with which, so we'll use BoxCox to help us figure out which of these variables should be transformed in which ways. 
 
 Below, we'll show an example of one of several BOXCOX plots we used to help make our decisions. The other plots were very similar to this one below, that shows the boxcox plot for `cmedv` predicted by the `lstat` predictor, which measure the % of the population in "lower class". 
 
@@ -326,7 +325,7 @@ qqnorm(transformed$residuals)
 qqline(transformed$residuals, col="red")
 ```
 
-Definitely a little room for improvement here but since this particular assumption is not the most important for us to bend to and the samples fit close enough to our expectations, we'll move on to checking whether our residuals are independently related to each other by checking the ACF plot below. 
+There is room for improvement, but since this particular assumption is not the most important for us to bend to and the samples fit close enough to our expectations, we'll move on to checking whether our residuals are independently related to each other by checking the ACF plot below. 
 
 ### ACF Plot of our Model Post Transformations
 
@@ -338,15 +337,6 @@ acf(transformed$resid)
 Interestingly, there does appear to be a slight relationship in one residual from the next. A pattern appears to emerge where one observation seems oddly close to the next one in line. What this might tell us is that there is a relationship between the observations in one township and the neighboring areas. This makes sense logically, as one expensive town is more likely to be neighbored by another expensive town rather than completely random placements of high and low value towns sporadically throughout Boston. 
 
 There is little we can do about this relationship and the data we have thus far, so while our assumption is not met to 100% our satisfaction, we feel comfortable moving forward with the data we have so far. We will be sure to note this discrepancy in our final conclusions. 
-
-
-# NEXT STEPS *************************************************
-
-- Identify high-leverage points or outliers and see what we should do with them. 
-- Feature Selection (excluding black_neighborhood) to try to improve model performance. Do we want to keep all of them regardless?
-- Final conclusions: How much does being a "Black Neighborhood" impact the median home price, other predictors held constant? 
-
-
 
 
 
@@ -379,7 +369,7 @@ ggplot(data, aes(x= black_neighborhood, y=rm))+
 
 It seems like the average number of rooms is similar between black neighborhoods and non-black neighborhoods at around 6.25. However, the variance for the average seems to be much higher for non-black neighborhoods.There also seems to be a large cluster of outliers above 7.5 rooms for non-black neighborhoods.
 
-Let's now run a logistic regression on the test data using only the variables for average home value and average number of rooms. 
+Now, we run a logistic regression on the test data using only the variables for average home value and average number of rooms. 
 
 ```{r}
 #logistic regression with only cmedv and rm
@@ -425,7 +415,7 @@ step(regfull, scope=list(lower=regnull, upper=regfull), direction = "backward")
 
 ```
 
-Through our analysis of doing forward and backward regression on the transformed variables, we find that the black_neighborhood1 variable was retained and relevant in both models. Therefore we can posit that the indicator of the predominantly black neighborhood has an influcene on housing prices in Boston.  
+Through our analysis of doing forward and backward regression on the transformed variables, we find that the black_neighborhood1 variable was retained and relevant in both models. Therefore we can posit that the indicator of the predominantly black neighborhood has an influence on housing prices in Boston.  
 
 
 ```{r}
