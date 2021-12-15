@@ -435,7 +435,7 @@ sample<-sample.int(nrow(data), floor(.75*nrow(data)), replace = F)
 train<-data[sample, ] ##training data frame
 test<-data[-sample, ] ##test data frame
 #logistic regression with all variables
-result.full<-glm(black_neighborhood~cmedv + zn + indus + chas + nox + rm + age + dis + rad + tax + ptratio + lstat , family = "binomial", data=train)
+result.full<-glm(black_neighborhood~cmedv + zn + indus + chas + nox + rm + age + dis + rad + tax + ptratio + lstat +crim, family = "binomial", data=train)
 summary(result.full)
 ```
 
