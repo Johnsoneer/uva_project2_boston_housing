@@ -35,7 +35,6 @@ The variable "b" is described in the census documents as...
 
 > 1000(B - 0.63)^2 where B is the proportion of blacks by town
 Initially, our goal was to categorize the data using a “majority black” binary variable. Based on the description, we thought the values would be between 0 and 1, or possibly 0 and 100. Instead, the variable is distributed on a quadratic curve. 
-
 ### Histogram of b-variable 
 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
@@ -206,7 +205,6 @@ Other relationships of note are the positive relationship between proximity to t
 
 
 > Proportion of population that is lower status = 1/2 (proportion of adults without, some high school education and proportion of male workers classified as laborers). The logarithmic specification implies that socioeconomic status distinctions mean more in the upper brackets of society than in the lower classes. Source: 1970 U. S. Census. [Harrison & Rubinfeld, 82]
-
 It appears that the variable is a combination of several class-related factors that have been aggregated to a given township. Unfortunatley, these variables are not able to be used as individual predictors, but there is a strong negative relationship between the % of "lower class" people in the town and the median value.
 ### Judgement Call
 
@@ -229,7 +227,6 @@ To start with, we'll run a very basic linear model with all the other predictors
 ### Benchmark Model Summary 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 benchmark <- lm(cmedv ~ crim + zn + indus + chas + nox + rm + age + log(dis) + rad + tax + ptratio + lstat + black_neighborhood, data = data)
-
 summary(benchmark)
 ```
 
@@ -401,10 +398,10 @@ We can be 95% confident that the true impact of a neighborhood being a black nei
 
 We wanted to see if a logistic model could be useful in predicting whether a neighborhood was a black neighborhood.
 
-Similar to the multiple regression model, we will run a basics logistic model with all the predictors included. This will give us a sense of our benchmark, as well as which predictors could be useful. We will also split the data set into two: 75% for training and 25% for testing. We will use the training data frame to create a model and the testing data frame to measure it's performance.
+Similar to the multiple regression model, we will run a basic logistic model with all the predictors included. This will give us a sense of our benchmark, as well as which predictors could be useful. We will also split the data set into two: 75% for training and 25% for testing. We will use the training data frame to create a model and the testing data frame to measure it's performance.
 
 ### Benchmark Model Summary 
-```{r,message= FALSE, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
+```{r,message= FALSE, warning = F, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 set.seed(100) ##for reproducibility to get the same split
 sample<-sample.int(nrow(data), floor(.75*nrow(data)), replace = F)
 train<-data[sample, ] ##training data frame
@@ -424,7 +421,7 @@ ggplot(data, aes(x= black_neighborhood, y=rm))+
   labs(title="Box Plot of Average Number of Rooms By black_neighorhood", y= 'Average Number of Rooms')
 ```
 
-It seems like the average number of rooms is similar between black neighborhoods and non-black neighborhoods at around 6.25. However, the variance for the average seems to be much higher for non-black neighborhoods.There also seems to be a large cluster of outliers above 7.5 rooms for non-black neighborhoods.
+It seems like the average number of rooms is similar between black neighborhoods and non-black neighborhoods at around 6.25. However, the variance for the average seems to be much higher for non-black neighborhoods. There also seems to be a large cluster of outliers above 7.5 rooms for non-black neighborhoods.
 
 Now, we run a logistic regression on the test data using only the variables for average home value and average number of rooms. 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
@@ -446,16 +443,29 @@ $H_a:$ *At least one of the coefficients in H0 is not zero*
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 #test statistic
 deltaG2_partial<-result.reduced$deviance-result.full$deviance
-deltaG2_partial
-
+#deltaG2_partial
 #p-value
-1-pchisq(deltaG2_partial,10)
+p<-1-pchisq(deltaG2_partial,10)
+sprintf('p-value = %e', p)
 ```
 
 The p-value of 0.111 is higher than our alpha of 0.05. Therefore, we fail to reject the null and decide to go with the reduced model.
 
-Let's now see how our reduced logistic model with two variables perform against the testing data frame. We'll also perform the following hypothesis test to see whether we should go with the full model or reduced model.  
+Let's now test to see whether our reduced model is useful in estimating the odds of a neighborhood being a black neighborhood.
 
+$H_o:$ *$\beta_1$ = $\beta_2$ = .. = $\beta_12$ = 0*
+
+$H_a:$ *At least one of the coefficients in H0 is not zero*
+
+```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
+deltaG2<-result.reduced$null.deviance-result.reduced$deviance
+p<- 1-pchisq(deltaG2,12)
+sprintf('p-value = %e', p)
+
+```
+Since the p-value is less than our alpha of 0.05, we reject the null and conclude that the reduced model is useful compared to the intercept only model.
+
+Let's now see how our reduced logistic model with two variables perform against the testing data frame. We'll plot the ROC curve and then calculate the AUC.
 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 ##predictions for black_neighborhood variable for test data based on training data
@@ -469,17 +479,34 @@ lines(x = c(0,1), y = c(0,1), col="red")
 #3.
 ##compute the AUC
 auc<-performance(rates, measure = "auc")
-auc@y.values
+sprintf('AUC = %.4f',auc@y.values)
 ```
-We'll plot the ROC curve and then calculate the AUC.
-
 
 The ROC curve is well above the diagonal line except for at the very end. It looks like the logistic regression performs much better than random guessing. 
 
-
 This is also confirmed by a very strong AUC of 0.8596. Since the AUC is well above 0.5, we can conclude that the model does better than random guessing and does have predictive value.
 
+We also want to calculate where in the ROC curve a 50% threshold would lie. We'll create a confusion matrix to calculate the TPR and FPR to find the point.
 
+```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
+#confusion matrix
+tab<-table(test$black_neighborhood, preds>0.5)
+tab
+#accuracy
+acc<-(tab[1,1]+tab[2,2])/(tab[1,1]+ tab[2,2] +tab[1,2]+ tab[2,1])
+
+#calculating true positive rate
+tpr<-tab[2,2]/ (tab[2,2]+tab[2,1])
+
+#calculating false positive rate
+fpr<- tab[1,2]/ (tab[1,1]+tab[1,2])
+
+sprintf('FPR = %.2f', fpr)
+sprintf('TPR = %.2f', tpr)
+
+```
+
+The point (0,0.44) lies well above the diagonal and therefore the model is a useful predictor when using a 50% threshold.
 
 
 # Part 5: Conclusions
