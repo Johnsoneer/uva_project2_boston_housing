@@ -334,7 +334,8 @@ step(regnull, scope=list(lower=regnull, upper=regfull), direction = "forward")
 step(regfull, scope=list(lower=regnull, upper=regfull), direction = "backward")
 ```
 
-Through our analysis of doing forward and backward regression on the transformed variables, we find that the black_neighborhood1 variable was retained and relevant in both models. Therefore we can posit that the indicator of the predominantly black neighborhood has an influence on housing prices in Boston.  
+
+We ran both forwards and backwards predictor selections on our model. Both selection processes selected the same variables. The variables removed are chas, zn, indus, and sqrt(age). 
 
 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
@@ -357,7 +358,8 @@ lev <- lm.influence(result)$hat
 lev[lev>2*p/n]
 ```
 
-We identify the high leverage observations, which are the data points that are the most influential. We ran leverages analysis, Cook's distance, and DFFITs to find the most influential data point. The outlive observation 368 was repeatedly included as an influential observation, however, Cook's distance resulted in no values. Though observation 368 is of concern, the analysis indicates that there is only one true outlier. 
+
+We identify the high leverage observations, which are the data points that are the most influencial. We ran leverages analysis, Cook's distance, and DFFITs to find the most influcencial data point. The outlier observation 368 was repeatedly included as an influcencial observation, however, Cook's distance resulted in no values. Though observation 368 is of concern, the analysis indicates that there is only one true outlier. 
 
 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
