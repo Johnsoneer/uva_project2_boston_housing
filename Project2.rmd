@@ -283,7 +283,7 @@ Normally we would consider transforming the response variable first, since trans
 
 Since we did a log transformation on the crime rates when comparing them to cmedv, we'll start with seeing how well that improves the residuals for a simple model using just crime as a predictor. 
 
-```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
+```{r, echo=FALSE,  out.width="100%", out.height="50%", fig.align = 'center'}
 # A simple linear model with just the crime vs cmedv. 
 SLR_crim <- lm(cmedv ~ crim, data = data)
 SLR_crim_log <- lm(cmedv ~ log(crim), data = data)
@@ -390,7 +390,7 @@ COOKS<-cooks.distance(result)
 COOKS[COOKS>qf(0.5,p,n-p)]
 ```
 
-#### DFFITS
+
 ```{r, include=FALSE}
 DFFITS<-dffits(result)
 DFFITS[abs(DFFITS)>2*sqrt(p/n)]
