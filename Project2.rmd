@@ -398,7 +398,9 @@ We'll plot the ROC curve and then calculate the AUC.
 
 The ROC curve is well above the diagonal line except for at the very end. It looks like the logistic regression performs much better than random guessing. 
 
+
 This is also confirmed by a very strong AUC of 0.8596. Since the AUC is well above 0.5, we can conclude that the model does better than random guessing and does have predictive value.
+
 
 
 ```{r}
