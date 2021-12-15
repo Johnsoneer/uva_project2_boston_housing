@@ -17,7 +17,23 @@ library(MASS)
 #?BostonHousing2
 ```
 
+# Executive Summary
+
+The Boston Housing Data from the 1970 census, collected by David Harrison and Daniel L Rubinfeld, shows various statistical patterns. This is a standard dataset within R that contains 506 observations across 14 distinct variables, or factors. Each observation is a census "tract", or a neighborhood within a single county, along with several interesting measurments about that neighborhood.
+
+Given the dataset, the variables, and the context of the data, this report attempts to find relationships between race and housing, if any, and the bias implications they present given the post-Civil Rights Act era in the United States. The main factor, the proportion of “blacks” by town was hypothesized to have a significant effect on the housing prices in Boston in 1970. For the purposes of the analysis that factor was transformed into a threshold of 26% - neighborhoods with a black population of 26% or greater would be deemed a “black neighborhood”, and those below that threshold would be “non-black” for the purpose of this analysis. Using a simplified factor makes it easier to identify any patterns when comparing black neighborhoods and their effect on housing prices. Other factors were also included in the analysis, based on their individual relationship to housing prices: distribution of housing per area, crime rate, housing room count (a proxy for size), and proportion of non-retail businesses, to name a few. 
+
+We conducted Statistical analysis using a set of linear regression models to determine if there was a dependent relationship between housing price and any of the factors in the dataset, including the “black neighborhood” threshold created. The analysis showed no signs of dependent relationship between the factors. We found that a given neighborhood being “black” as stated by the threshold had a negative impact on the housing price. Moreover, the data suggests that the deficit in prices is around $3,000 lower simply for being a “black neighborhood”. 
+ 
+In the second part of the analysis, a model was created that could potentially predict whether a neighborhood is in a black neighborhood given various inputs. In order to see the effectiveness of the model, the available data was split into two -- one for creating the model and another for testing its accuracy. The first model that was considered tried to predict the likelihood that a neighborhood was a black neighborhood using all available factors in our dataset. The results were mixed and showed that only two of the 12 factors  considered were needed to tell a black neighborhood apart. The two factors that were significant were the average home value and the average number of rooms in each house in the neighborhood.
+
+Then, a model was created with only these two factors as inputs. The results were promising and showed that the model does have predictive value. The model shows that holding the average number of rooms in a neighborhood constant, increasing the average home value in a neighborhood by $1,000, the odds that the neighborhood is a black neighborhood is multiplied by 0.74. On the other hand, holding home value constant, increasing the average number of rooms in a neighborhood by one, the odds that the neighborhood is a black neighborhood is multiplied by 4.37. 
+
+Overall, both models conclude that race plays an impact in housing prices in Boston in the 1970s. The model used suggested that there could be a difference in housing prices ranging from \$1,700 - \$4,300 for a black neighborhood, even in the presence of the other factors involved. Given that typical housing prices in a black neighborhood in Boston in the 1970s did not exceed \$15,000, this is a significant difference.
+
 # Exploring our Dataset
+
+### First 6 rows of data
 
 ```{r, echo=FALSE}
 # Download our dataset
@@ -28,6 +44,7 @@ head(data)
 ```
 
 
+This shows us the various avaiable features we can use for our model. We immediately identified a potential problem with one feature regarding race in boston housing.
 
 ## "Majority Black" response variable
 
@@ -44,7 +61,7 @@ ggplot(data, aes(x = b))+
   geom_histogram(binwidth = 1)
 ```
 
-The proportion variable ranges from 0 to 400, and most of the data has values on the upper end of the range. The data has been transformed so that higher values represent neighborhoods with higher white populations. 
+The proportion variable ranges from 0 to 400, and most of the data has values on the upper end of the range. The data has been transformed so that higher values represent neighborhoods with lower black populations. 
 	
 If we try to reverse engineer the original B value (based on the formula b=1000(B-.63)2), it’s not possible to get the answer. The result of the previously mentioned formula is a quadratic curve, plotted below:
 
@@ -83,6 +100,7 @@ $1000*(0.26 - 0.63)2=136.9$
 
 so black_neighborhood = 1 if b <= 136.9
 
+### What % of Census Tracts are considered "Black Neighborhoods"
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 # code to create binary black_neighborhood variable
 data <- data %>% 
@@ -90,7 +108,7 @@ data <- data %>%
 # what % of our neighborhoods are black neighborhoods by this definition? 
 sum(data$black_neighborhood)/nrow(data)
 ```
-After generating the binary variable, we generated visualizations to see how the other variables interact. Specifically, we are focused on the price variable. 
+About 7%. After generating the binary variable, we generated visualizations to see how the other variables interact. Specifically, we focused on the price variable. 
 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 data$black_neighborhood <- as.factor(data$black_neighborhood)
@@ -118,7 +136,7 @@ ggplot(data, aes(x=cmedv))+
 
 The price of housing appears normally distributed. There are a few towns with noticably higher prices. These may be potential outliers in the dataset.  
 
-Next, we generate scatterplots to describe the quantiative variables. 
+Next, we generated scatterplots to describe the quantiative variables. 
 
 
 
@@ -129,7 +147,7 @@ ggplot(data, aes(x = log(crim), y = cmedv))+
        x = "Crime Rate - Log Scale")
 ```
 
-It appears that as crime rate increases, the median value of the home decreases. However, as most areas in the data set had extremely low crime rates, we used a log scale for crime to better highlight this trend. It is important to note that the relationship between crime and housing prices is not constant, as there are some expensive areas in the data set that have relatively higher crime rates per capita. 
+It appears that as crime rate increases, the median value of the home decreases. However, most areas in the data set have low crime rates. Thus, we used a log scale for crime to better highlight this trend. It is important to note that the relationship between crime and housing prices is not constant, as there are some expensive areas in the data set that have relatively higher crime rates per capita. 
 
 
 Next, we assess how the size of the home, approximated by the number of rooms, affects the median price. 
@@ -200,20 +218,22 @@ grid.arrange(p5,p6,p7,p8,
 )
 ```
 
-The views reveal key insights about our data set. The Tax rate chart divides the dataset into two. The only other predictor that does this is the Index of Radial Highway access. Layering both together into the same chart via color, you can see that the group in the highest tax bracket is entirely made up of those areas with close access to the highways. Accessibility to highways seems to create a divide between groups in our dataset.
+The views reveal key insights about our data set. The tax rate chart divides the dataset into two groups. The only other predictor that does this is the Index of Radial Highway access. Layering both together into the same chart via color, you can see that the group in the highest tax bracket is entirely made up of those areas with close access to the highways. Accessibility to highways seems to create a divide between groups in our dataset.
 
-Other relationships of note are the positive relationship between proximity to the river on price, and the negative relationship between age of the home on price. Finally, there's this indexed metric called `lstat` which measures the "Percentage of Lower Status of the Population". Looking further into the 1970 Census paper, it looks like this metric measures the following:
+Other relationships of note are the positive relationship between proximity to the river on price, and the negative relationship between age of the home on price. Another metric of note is the indexed metric `lstat`, which measures the "Percentage of Lower Status of the Population". Looking further into the 1970 Census paper, it looks like this metric measures the following:
 
 
 > Proportion of population that is lower status = 1/2 (proportion of adults without, some high school education and proportion of male workers classified as laborers). The logarithmic specification implies that socioeconomic status distinctions mean more in the upper brackets of society than in the lower classes. Source: 1970 U. S. Census. [Harrison & Rubinfeld, 82]
 
-It appears that the variable is a combination of several class-related factors that have been aggregated to a given township. Unfortunatley, these variables are not able to be used as individual predictors, but there is a strong negative relationship between the % of "lower class" people in the town and the median value.
+It appears that the variable is a combination of several class-related factors that have been aggregated to a given township. Unfortunatley, these variables are not able to be used as individual predictors, but a strong negative relationship between the % of "lower class" people in the town and the median value exists.
+
+
 ### Judgement Call
 
 
 There are several reasons as to why there are clusters of neighborhoods at $50k. It's possible that the researchers had blank values and filled those in with the maximum value they had data for. It's also possible that the original researchers decided to filter out any neighborhoods that were above 50k, which could make sense for their research. 
 
-For the purposes of our research, we will be *ignoring any of these neighborhoods valued at cmedv = $50k*. Further reserach might yield insight into why those neighborhoods look this way and a published paper should try to do so, but for this assignment we'll keep our dataset within those bounds. We lose 16 neighborhoods doing so, or around 3% of our data. 
+For the purposes of our research, we will be *ignoring any of these neighborhoods valued at cmedv = $50k*. Further research might yield insight into why those neighborhoods look this way, and a published paper should try to do so, but for this assignment we'll keep our dataset within those bounds. We lose 16 neighborhoods doing so, or around 3% of our data. 
 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 data <- data %>% 
@@ -233,9 +253,10 @@ benchmark <- lm(cmedv ~ crim + zn + indus + chas + nox + rm + age + log(dis) + r
 summary(benchmark)
 ```
 
-With the above benchmark set, it appears we are off to a good start. Our adjusted R-squared suggests that nearly 74% of the variance in our data is explained by our model. Our F-statistic is large and the relative p-value suggests the following result to a hypothesis test:
+Our benchmark adjusted R-squared suggests that about 78% of the variance in our data is explained by our model. Our F-statistic is large and the relative p-value suggests the following result to a hypothesis test:
 
 $H_0:$ *There is no difference between our model and the intercept alone.*
+
 $H_A:$ *There is difference between our model and the intercept alone.*
 
 Since our p-value is below .05, we can reject the null and conclude that some combination of the above predictors improves the model beyond the intercept alone. 
@@ -258,7 +279,7 @@ There are other assumptions we can verify as well, but we'll start with these si
 
 ### Transformations
 
-Ideally, we won't need to transform our response variable at all because we're hoping to interpret coefficients directly. Normally we would consider transforming the response variable first, since transforming the predictor does not affect the variance of the error terms and any transformations we do to the predictors might be skewed if we need to eventually transform the response. But the above suggests a curve rather than wild variance, so we'll start with predictors. 
+Normally we would consider transforming the response variable first, since transforming the predictor does not affect the variance of the error terms and any transformations we do to the predictors might be skewed if we need to eventually transform the response. But the above suggests a curve rather than wild variance, so we'll start with predictors. 
 
 Since we did a log transformation on the crime rates when comparing them to cmedv, we'll start with seeing how well that improves the residuals for a simple model using just crime as a predictor. 
 
@@ -337,7 +358,7 @@ step(regfull, scope=list(lower=regnull, upper=regfull), direction = "backward")
 
 We ran both forwards and backwards predictor selections on our model. Both selection processes selected the same variables. The variables removed are chas, zn, indus, and sqrt(age). 
 
-
+#### Bonferroni Outlier Detection
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 result <- lm(cmedv ~ log(crim) + nox + rm + sqrt(dis) + rad + 
     tax + ptratio + log(lstat) + black_neighborhood, data = data)
@@ -353,6 +374,8 @@ ext.student.res[abs(ext.student.res)>crit]
 
 By using Bonferroni method for outlier detection, we find that observation 368 in our dataset is an outlier.
 
+#### High-Leverage Points
+
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 lev <- lm.influence(result)$hat
 lev[lev>2*p/n]
@@ -361,17 +384,19 @@ lev[lev>2*p/n]
 
 We identify the high leverage observations, which are the data points that are the most influencial. We ran leverages analysis, Cook's distance, and DFFITs to find the most influcencial data point. The outlier observation 368 was repeatedly included as an influcencial observation, however, Cook's distance resulted in no values. Though observation 368 is of concern, the analysis indicates that there is only one true outlier. 
 
-
+#### Cook's Distance
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 COOKS<-cooks.distance(result)
 COOKS[COOKS>qf(0.5,p,n-p)]
 ```
+
+#### DFFITS
 ```{r, include=FALSE}
 DFFITS<-dffits(result)
 DFFITS[abs(DFFITS)>2*sqrt(p/n)]
 ```
 
-#### What does Our Outlier Look Like?
+### What does Our Outlier Look Like?
 
 Upon closer inspection of this outlier point, we don't observe any notable reason to drop this neighborhood from our dataset. Our final coefficient of interest (`black_neighborhood`) is largely unaffected by the addition of this point, and since the model's performance is still performing better than our benchmark, we'll include it in our final model as well. 
 
@@ -401,10 +426,10 @@ We can be 95% confident that the true impact of a neighborhood being a black nei
 
 We wanted to see if a logistic model could be useful in predicting whether a neighborhood was a black neighborhood.
 
-Similar to the multiple regression model, we will run a basics logistic model with all the predictors included. This will give us a sense of our benchmark, as well as which predictors could be useful. We will also split the data set into two: 75% for training and 25% for testing. We will use the training data frame to create a model and the testing data frame to measure it's performance.
+Similar to the multiple regression model, we will run a basic logistic model with all the predictors included. This will give us a sense of our benchmark, as well as which predictors could be useful. We will also split the data set into two: 75% for training and 25% for testing. We will use the training data frame to create a model and the testing data frame to measure it's performance.
 
 ### Benchmark Model Summary 
-```{r,message= FALSE, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
+```{r,message= FALSE, warning = F, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 set.seed(100) ##for reproducibility to get the same split
 sample<-sample.int(nrow(data), floor(.75*nrow(data)), replace = F)
 train<-data[sample, ] ##training data frame
@@ -424,7 +449,7 @@ ggplot(data, aes(x= black_neighborhood, y=rm))+
   labs(title="Box Plot of Average Number of Rooms By black_neighorhood", y= 'Average Number of Rooms')
 ```
 
-It seems like the average number of rooms is similar between black neighborhoods and non-black neighborhoods at around 6.25. However, the variance for the average seems to be much higher for non-black neighborhoods.There also seems to be a large cluster of outliers above 7.5 rooms for non-black neighborhoods.
+It seems like the average number of rooms is similar between black neighborhoods and non-black neighborhoods at around 6.25. However, the variance for the average seems to be much higher for non-black neighborhoods. There also seems to be a large cluster of outliers above 7.5 rooms for non-black neighborhoods.
 
 Now, we run a logistic regression on the test data using only the variables for average home value and average number of rooms. 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
@@ -433,9 +458,7 @@ result.reduced<-glm(black_neighborhood~cmedv+ rm , family = "binomial", data= tr
 summary(result.reduced)
 ```
 
-The reduced model looks much better since the p-values for both coefficients are close to zero. It's interesting to see that the coefficient for rm is positive. This indicates that holding the average home value constant, increasing the average number of rooms increases the probability that the neighborhood is black. 
-
-The coefficient for the average home value is negative. This indicates that holding the average number of rooms constant, increasing the average home value decreases the probability that the neighborhood is black. 
+The reduced model looks much better since the p-values for both coefficients are close to zero. The coefficient for `rm` is positive, which indicates that holding the average home value constant, increasing the average number of rooms increases the probability that the neighborhood is black. The coefficient for the average home value is negative. This indicates that holding the average number of rooms constant, increasing the average home value decreases the probability that the neighborhood is black. 
 
 We will now perform the following hypothesis test to see whether we should go with the full model or reduced model:  
 
@@ -446,15 +469,30 @@ $H_a:$ *At least one of the coefficients in H0 is not zero*
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
 #test statistic
 deltaG2_partial<-result.reduced$deviance-result.full$deviance
-deltaG2_partial
+#deltaG2_partial
 
 #p-value
-1-pchisq(deltaG2_partial,10)
+p<-1-pchisq(deltaG2_partial,10)
+sprintf('p-value = %e', p)
 ```
 
 The p-value of 0.111 is higher than our alpha of 0.05. Therefore, we fail to reject the null and decide to go with the reduced model.
 
-Let's now see how our reduced logistic model with two variables perform against the testing data frame. We'll also perform the following hypothesis test to see whether we should go with the full model or reduced model.  
+Next, we test how our reduced logistic model with two variables perform against the testing data frame. We also perform the following hypothesis test to determine if we should use the full model or reduced model.  
+
+$H_o:$ *$\beta_1$ = $\beta_2$ = .. = $\beta_12$ = 0*
+
+$H_a:$ *At least one of the coefficients in H0 is not zero*
+
+```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
+deltaG2<-result.reduced$null.deviance-result.reduced$deviance
+p<- 1-pchisq(deltaG2,12)
+sprintf('p-value = %e', p)
+```
+
+Since the p-value is less than our alpha of 0.05, we reject the null and conclude that the reduced model is useful compared to the intercept only model.
+
+Let's now see how our reduced logistic model with two variables perform against the testing data frame. We'll plot the ROC curve and then calculate the AUC.
 
 
 ```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
@@ -469,23 +507,42 @@ lines(x = c(0,1), y = c(0,1), col="red")
 #3.
 ##compute the AUC
 auc<-performance(rates, measure = "auc")
-auc@y.values
+sprintf('AUC = %.4f',auc@y.values)
 ```
-We'll plot the ROC curve and then calculate the AUC.
-
 
 The ROC curve is well above the diagonal line except for at the very end. It looks like the logistic regression performs much better than random guessing. 
 
 
-This is also confirmed by a very strong AUC of 0.8596. Since the AUC is well above 0.5, we can conclude that the model does better than random guessing and does have predictive value.
+This is also confirmed by a strong AUC of 0.8596. Since the AUC is well above 0.5, we can conclude that the model does better than random guessing and does have predictive value.
 
 
+We also want to calculate where in the ROC curve a 50% threshold would lie. We'll create a confusion matrix to calculate the TPR and FPR to find the point.
+
+```{r, echo=FALSE,  out.width="75%", out.height="50%", fig.align = 'center'}
+#confusion matrix
+tab<-table(test$black_neighborhood, preds>0.5)
+tab
+#accuracy
+acc<-(tab[1,1]+tab[2,2])/(tab[1,1]+ tab[2,2] +tab[1,2]+ tab[2,1])
+#calculating true positive rate
+tpr<-tab[2,2]/ (tab[2,2]+tab[2,1])
+#calculating false positive rate
+fpr<- tab[1,2]/ (tab[1,1]+tab[1,2])
+sprintf('FPR = %.2f', fpr)
+sprintf('TPR = %.2f', tpr)
+```
+
+The point (0,0.44) lies well above the diagonal and therefore the model is a useful predictor when using a 50% threshold.
 
 
 # Part 5: Conclusions
 
 
+Both models show evidence of impact on housing prices in Boston related to the race of the population in that neighborhood. In the presence of other predictors, our first model suggests that a black neighborhood could experience between \$1,700 to \$4,300 difference in housing prices. 
 
+While our analysis does not conclude that the racial disparities we found were a direct result of the racist policies that were active in Boston at the time of the data collection, our research provides evidence that there could be a connection and should be considered along with other corroborating evidence. The conclusion we made when validating the assumptions - that wealthy neighborhoods neighbored other wealthy neighborhoods, could also implicate these policies. Areas in the city were historically designed to be predominantly white or predominantly non-white prior to our dataset being collected. 
+	
+The racial disparity we have found is not only a snapshot of its time. These housing disparities could still exist today, and further research can illuminate how much or how little this has changed over time. 
 
 
 
